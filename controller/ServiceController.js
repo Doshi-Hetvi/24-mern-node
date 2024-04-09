@@ -2,6 +2,7 @@ const serviceSchema = require('../models/ServiceModel')
 const multer = require('multer')
 const path = require('path')
 const cloudinaryController = require("./CloudinaryController")
+const { log } = require('console')
 
 const storage = multer.diskStorage({
     //destination : './uploads',
@@ -29,26 +30,35 @@ const createService = async (req, res) => {
                 })
             }
             else {
-                const result = await cloudinaryController.uploadImage(req.file.path)
-                const obj = ({
-                    servicename: req.body.servicename,
-                    category: req.body.category,
-                    subCategory: req.body.subCategory,
-                    serviceprovider: req.body.serviceprovider,
-                    type: req.body.type,
-                    amount: req.body.amount,
-                    area: req.body.area,
-                    city: req.body.city,
-                    state: req.body.state,
-                    imageUrl: result.secure_url
+                try {
+                    const result = await cloudinaryController.uploadImage(req.file.path)
+                    const obj = ({
+                        servicename: req.body.servicename,
+                        category: req.body.category,
+                        subCategory: req.body.subCategory,
+                        serviceprovider: req.body.serviceprovider,
+                        type: req.body.type,
+                        amount: req.body.amount,
+                        area: req.body.area,
+                        city: req.body.city,
+                        state: req.body.state,
+                        imageUrl: result.secure_url
+                    }
+                    )
+                    const newService = await serviceSchema.create(obj);
+                    res.status(200).json({
+                        message: "File Uploaded",
+                        data: newService,
+                        flag: 1
+                    })
                 }
-                )
-                const savservice = await serviceSchema.create(obj);
-                res.status(200).json({
-                    message: "File Uploaded",
-                    data: savservice,
-                    flag: 1
-                })
+                catch (error) {
+                    console.log(error);
+                    res.status(500).json({
+                        message: "Error uploading image to Cloudinary",
+                        flag: -1
+                    })
+                }
             }
         }
     })
@@ -56,10 +66,10 @@ const createService = async (req, res) => {
 
 const getService = async (req, res) => {
     try {
-        const getservice = await serviceSchema.find().populate("category").populate("subCategory").populate("serviceprovider").populate("type")
+        const service = await serviceSchema.find().populate("category").populate("subCategory").populate("serviceprovider").populate("type")
         res.status(200).json({
             message: "Get all service",
-            data: getservice,
+            data:service,
         })
     }
     catch (err) {
@@ -168,32 +178,61 @@ const updateService = async (req, res) => {
     }
 }
 
-const getServiceByServiceProviderID = async (req, res) => {
+
+const getServiceByServiceProviderID = async(req,res) => {
     const serviceProviderId = req.params.id
-    try {
-        const services = await serviceSchema.find({ serviceProvider: serviceProviderId }).populate("category").populate("subCategory").populate("serviceprovider").populate("type")
-        console.log(services);
-        if (services && services.length > 0) {
-            res.status(200).json({
-                message: "service found",
-                flag: 1,
-                data: services
-            })
-        }
-        else {
-            res.status(404).json({
-                message: "no service found",
-                flag: -1,
-                data: []
-            })
-        }
-    }
-    catch (err) {
-        res.status(500).json({
-            message: "error in getting",
-            flag: -1,
+    console.log(serviceProviderId);
+    const ser = await serviceSchema.find({serviceprovider : serviceProviderId}).populate("category").populate("subCategory").populate("serviceprovider").populate("type")
+    console.log(ser);
+    try{
+        if(ser.length === 0){
+        res.status(404).json({
+            message: "Service not found",
             data: []
         })
+    }
+    else{
+        res.status(200).json({
+            message: "Successfully fetched services of the provider",
+            data: ser,
+            flag:1
+        })
+    }
+}
+catch(err){
+    res.status(500).json({
+        message: "No service Found",
+        flag:-1,
+        data: []
+    });
+}
+}
+
+const filterService = async (req,res) =>{
+    try{
+        
+    console.log(req.query);
+    const filter = await serviceSchema.find({servicename : {$regex : req.query.servicename, $option: "(?i)"}}).populate("category").populate("subCategory").populate("serviceprovider").populate("type")
+    if (filter && filter.length > 0) {
+        res.status(200).json({
+          message: "service found.",
+          data: filter,
+          flag: 1,
+        });
+      } else {
+        res.status(404).json({
+          message: "No service found",
+          data: [],
+        });
+      }
+    }
+    catch(err) {
+        console.log(err);
+        res.status(500).json({
+            message: "Error in filtering services",
+            data: [],
+            flag: -1,
+        });
     }
 }
 
@@ -203,5 +242,6 @@ module.exports = {
     getServiceById,
     updateService,
     deleteService,
-    getServiceByServiceProviderID
+    getServiceByServiceProviderID,
+    filterService
 }

@@ -1,6 +1,7 @@
 const userSchema = require('../models/UserModel')
+const ServiceProviderSchema = require('../models/ServiceProviderModel')
 const encrypt = require('../util/Encrypt')
-// const mailUtil = require("../util/MailUtils")
+const mailUtil = require("../util/MailUtils")
 
 const loginUser = async (req, res) => {
     try {
@@ -40,6 +41,65 @@ const loginUser = async (req, res) => {
     }
 }
 
+const resetPassword = async (req, res) => {
+
+    const email = req.body.email
+    const password = req.body.password
+    console.log(email)
+    console.log(password)
+    const hashedPassword = await encrypt.encryptPassword(password)
+
+    try{
+        
+        const updateUser = await userSchema.findOneAndUpdate({email:email},{$set:{password:hashedPassword}})
+        const updatServiceProvider = await ServiceProviderSchema.findOneAndUpdate({email:email},{$set:{password:hashedPassword}})
+        res.status(200).json({
+            message:"Password updated successfully",
+            flag:1,
+        })
+
+    }catch(err){
+        console.log(err)
+        res.status(500).json({
+            message:"Error in updating password",
+        })
+    }
+}
+
+const isUserExist= async (req, res) => {
+
+    try{
+        const email = req.body.email
+        const getUserByEmail = await userSchema.findOne({email:email})
+        const getServiceProvider = await ServiceProviderSchema.findOne({email:email})
+        if(getUserByEmail){
+            res.status(200).json({
+                message:"User found",
+                flag:1,
+                data:getUserByEmail
+            })
+        }else if(getServiceProvider){
+            res.status(200).json({
+                message:"ServiceProvider found",
+                flag:1,
+                data:getServiceProvider
+            })
+        }
+        else{
+
+            res.status(404).json({
+                message:"User not found",
+                flag:-1
+            })
+        }
+    }catch(err){
+        res.status(500).json({
+            message:"Error in getting User by email",
+        })
+
+    }
+}
+
 const createUser = async (req, res) => {
     try {
 
@@ -52,7 +112,7 @@ const createUser = async (req, res) => {
             role: req.body.role
         }
         const createuser = await userSchema.create(Userobj);
-        // const mailRes = await mailUtil.mailSend(createuser.email,"Welcome mail","Welcome to local service...")
+        const mailRes = await mailUtil.mailSend(createuser.email,"Welcome mail","Welcome to local service...")
         res.status(200).json({
             message: "Created Successfully",
             data: createuser,
@@ -192,5 +252,6 @@ module.exports = {
     getUserById,
     updateUser,
     deleteUser,
-    loginUser
+    loginUser,
+    isUserExist,resetPassword
 }

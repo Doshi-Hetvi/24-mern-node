@@ -34,10 +34,12 @@ const serviceSchema = new Schema ({
         required: true
     },
     state:{
-        type:String
+        type:String,
+        required:true
     }
 ,imageUrl:{
-    type: String
+    type: String,
+    required:true
 }
 
 })

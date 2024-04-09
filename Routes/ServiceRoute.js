@@ -8,5 +8,6 @@ router.get("/service/provider/:id",ServiceController.getServiceByServiceProvider
 router.get("/service/:id",ServiceController.getServiceById)
 router.put("/service/:id",ServiceController.updateService)
 router.delete("/service/:id",ServiceController.deleteService)
+router.get("/service/filterservice/:id",ServiceController.filterService)
 
 module.exports = router;
