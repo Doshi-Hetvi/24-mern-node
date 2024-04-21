@@ -37,6 +37,7 @@ const createService = async (req, res) => {
                         category: req.body.category,
                         subCategory: req.body.subCategory,
                         serviceprovider: req.body.serviceprovider,
+                        servicedescription: req.body.servicedescription,
                         type: req.body.type,
                         amount: req.body.amount,
                         area: req.body.area,
@@ -152,9 +153,15 @@ const updateService = async (req, res) => {
     const id = req.params.id
     const newservice = req.body
     try {
+        let imageUrl = newservice.imageUrl; // Default to existing image
+        if (req.file) {
+            // If a new image is uploaded, update the imageUrl
+            const result = await cloudinaryController.uploadImage(req.file.path);
+            imageUrl = result.secure_url;
+        }
 
-        const updateservice = await serviceSchema.findByIdAndUpdate(id, newservice)
-        if (updateservice == null) {
+        const updateservice = await serviceSchema.findByIdAndUpdate(id, {...newservice,imageUrl:imageUrl}, {new:true})
+        if (!updateservice) {
             res.status(404).json({
                 message: "Service not found",
                 flag: -1
@@ -164,6 +171,7 @@ const updateService = async (req, res) => {
             res.status(200).json({
                 message: "Service updated successfully",
                 flag: 1,
+                data:updateservice
             })
         }
 
@@ -236,6 +244,37 @@ const filterService = async (req,res) =>{
     }
 }
 
+
+
+const getServiceByCategory = async (req, res) => {
+    const categoryId = req.params.categoryId
+    try {
+      const services = await serviceSchema.find({ category: categoryId }).populate("category")
+      console.log(services);
+      // if (subcategories.length === 0) {
+      //   res.status(404).json({
+      //     message: "Subcategories not found",
+      //     data: []
+      //   })
+      // }
+      // else {
+      res.status(200).json({
+        message: "Services found for category",
+        flag: 1,
+        data: services
+      })
+      // }
+    }
+    catch (err) {
+      res.status(500).json({
+        message: "Error in getting services from category",
+        data: [],
+        flag: -1
+      })
+  
+    }
+  }
+
 module.exports = {
     createService,
     getService,
@@ -243,5 +282,6 @@ module.exports = {
     updateService,
     deleteService,
     getServiceByServiceProviderID,
-    filterService
+    filterService,
+    getServiceByCategory
 }

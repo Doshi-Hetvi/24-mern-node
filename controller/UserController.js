@@ -2,6 +2,8 @@ const userSchema = require('../models/UserModel')
 const ServiceProviderSchema = require('../models/ServiceProviderModel')
 const encrypt = require('../util/Encrypt')
 const mailUtil = require("../util/MailUtils")
+const otpSchema = require("../models/OtpModel")
+
 
 const loginUser = async (req, res) => {
     try {
@@ -45,56 +47,120 @@ const resetPassword = async (req, res) => {
 
     const email = req.body.email
     const password = req.body.password
+    const otp = req.body.otp
+    const time = req.body.time
     console.log(email)
     console.log(password)
-    const hashedPassword = await encrypt.encryptPassword(password)
+    const getUserForOtp = await otpSchema.findOne({ email: email })
+    console.log(getUserForOtp);
+    if (getUserForOtp) {
+        if (getUserForOtp.otp === otp) {
+            const timeDifference = time - getUserForOtp.time
+            const is60SecondGap = timeDifference >= 6000
 
-    try{
-        
-        const updateUser = await userSchema.findOneAndUpdate({email:email},{$set:{password:hashedPassword}})
-        const updatServiceProvider = await ServiceProviderSchema.findOneAndUpdate({email:email},{$set:{password:hashedPassword}})
-        res.status(200).json({
-            message:"Password updated successfully",
-            flag:1,
-        })
-
-    }catch(err){
-        console.log(err)
-        res.status(500).json({
-            message:"Error in updating password",
-        })
+            if (is60SecondGap) {
+                res.status(404).json({
+                    message: "OTP is expired",
+                    flag: -1,
+                })
+            }
+            else {
+                const hashedPassword = await encrypt.encryptPassword(password);
+                try {
+                    const updateUserPassword = await userSchema.findOneAndUpdate({ email: email }, { $set: { password: hashedPassword } })
+                    await otpSchema.findOneAndDelete({ email: email })
+                    const updateServiceProviderPassword = await ServiceProviderSchema.findOneAndUpdate({ email: email }, { $set: { password: hashedPassword } })
+                    await otpSchema.findOneAndDelete({ email: email })
+                    res.status(200).json({
+                        message: "Password updated successfully",
+                        flag: 1,
+                    })
+                } catch (err) {
+                    console.log(err)
+                    res.status(500).json({
+                        message: "Error in updating password",
+                        flag: -1,
+                    })
+                }
+            }
+        }
+        else {
+            await otpSchema.findOneAndDelete({ email: email })
+            res.status(404).json({
+                message: "Invalid OTP",
+                flag: -1,
+            })
+        }
     }
+    else {
+        await otpSchema.findOneAndDelete({ email: email })
+        res.status(500).json({
+            message: "Error...",
+            flag: -1,
+        })
+
+    }
+
 }
 
-const isUserExist= async (req, res) => {
+const isUserExist = async (req, res) => {
 
-    try{
+    try {
         const email = req.body.email
-        const getUserByEmail = await userSchema.findOne({email:email})
-        const getServiceProvider = await ServiceProviderSchema.findOne({email:email})
-        if(getUserByEmail){
+        const getUserByEmail = await userSchema.findOne({ email: email })
+        const getServiceProvider = await ServiceProviderSchema.findOne({ email: email })
+
+        console.log(getUserByEmail);
+        console.log(getServiceProvider);
+        if (getUserByEmail) {
+            const otp = Math.floor(1000 + Math.random() * 9000)
+            const mailRes = await mailUtil.mailSend(getUserByEmail.email,
+                "OTP For Reset Password...",
+                `Your OTP for reset password is ${otp}`
+            )
+            const otpobj = {
+                otp: otp,
+                email: getUserByEmail.email,
+                status: true,
+            }
+            await otpSchema.create(otpobj)
+
             res.status(200).json({
-                message:"User found",
-                flag:1,
-                data:getUserByEmail
+                message: "User found",
+                flag: 1,
+                data: getUserByEmail
             })
-        }else if(getServiceProvider){
+        } else if (getServiceProvider) {
+            const otp = Math.floor(1000 + Math.random() * 9000)
+            const mailRes = await mailUtil.mailSend(getServiceProvider.email,
+                "OTP For Reset Password...",
+                `Your OTP for reset password is ${otp}`
+            )
+
+            const otpodj1 = {
+                otp: otp,
+                email: getServiceProvider.email,
+                status: true,
+            }
+            await otpSchema.create(otpodj1)
+
             res.status(200).json({
-                message:"ServiceProvider found",
-                flag:1,
-                data:getServiceProvider
+                message: "ServiceProvider found",
+                flag: 1,
+                data: getServiceProvider
             })
         }
-        else{
+        else {
 
             res.status(404).json({
-                message:"User not found",
-                flag:-1
+                message: "User not found",
+                flag: -1
             })
         }
-    }catch(err){
+    } catch (err) {
         res.status(500).json({
-            message:"Error in getting User by email",
+            message: "Error in getting User by email",
+            flag: -1
         })
 
     }
@@ -109,10 +175,11 @@ const createUser = async (req, res) => {
             email: req.body.email,
             password: hashedPassword,
             phone: req.body.phone,
-            role: req.body.role
+            role: req.body.role,
+            isDefault: req.body.isDefault
         }
         const createuser = await userSchema.create(Userobj);
-        const mailRes = await mailUtil.mailSend(createuser.email,"Welcome mail","Welcome to local service...")
+        const mailRes = await mailUtil.mailSend(createuser.email, "Welcome mail", "Welcome to local service...")
         res.status(200).json({
             message: "Created Successfully",
             data: createuser,
@@ -131,10 +198,17 @@ const createUser = async (req, res) => {
 
 const getUser = async (req, res) => {
     try {
-        const getUser = await userSchema.find().populate('role')
+        const getUser = await userSchema.find().populate('role').populate({
+            path:'address',
+            populate: {
+                path: "address",
+                model: "Address"
+            }
+        })
         res.status(200).json({
             message: "Get all user",
             data: getUser,
+            flag: 1
         })
     }
     catch (err) {
@@ -152,7 +226,7 @@ const deleteUser = async (req, res) => {
 
     try {
         const id = req.params.id
-        const deleteduser = await userSchema.findByIdAndDelete(id).populate('role')
+        const deleteduser = await userSchema.findByIdAndDelete(id)
         if (deleteduser == null) {
             res.status(404).json({
                 message: "User not found",
@@ -184,7 +258,7 @@ const getUserById = async (req, res) => {
     try {
 
         const id = req.params.id
-        const user = await userSchema.findById(id)
+        const user = await userSchema.findById(id).populate('role').populate('address')
         if (user == null) {
             res.status(404).json({
                 message: "User not found",
@@ -253,5 +327,6 @@ module.exports = {
     updateUser,
     deleteUser,
     loginUser,
-    isUserExist,resetPassword
+    isUserExist,
+    resetPassword
 }

@@ -4,12 +4,28 @@ const Schema = mongoose.Schema;
 const serviceProviderSchema = new Schema ({
     name:{
         type: String,
-        required: true
     },
     email:{
         type:String,
         unique: true,
-        required: true
+    },
+    company:{
+        type:String,
+    },
+    address: {
+        type: String,
+    },
+    city: {
+        type: String,
+    },
+    country: {
+        type: String,
+    },
+    postalcode: {
+        type: String,
+    },
+    aboutme: {
+        type: String,
     },
     password:{
         type: String,
@@ -18,8 +34,6 @@ const serviceProviderSchema = new Schema ({
     },
     phone: {
         type: String,
-        unique:true,
-        required: true
     },
     role:{
         type: Schema.Types.ObjectId,

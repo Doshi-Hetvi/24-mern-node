@@ -48,7 +48,13 @@ const createServiceProvider = async (req,res) =>{
         email: req.body.email,
         password: hashedPassword,
         phone: req.body.phone,
-        role: req.body.role
+        role: req.body.role,
+        company: req.body.company,
+        address: req.body.address,
+        city: req.body.city,
+        country: req.body.country,
+        postalcode: req.body.postalcode,
+        aboutme: req.body.aboutme
     }
     const createserviceProvider = await serviceProviderSchema.create(ServiceProviderobj);
     const mailRes = await mailUtil.mailSend(createserviceProvider.email,"Welcome mail","Welcome to local service...")
@@ -182,6 +188,10 @@ const updateServiceProvider = async (req, res) => {
 
 
 }
+
+
+
+
 
 
 module.exports = {

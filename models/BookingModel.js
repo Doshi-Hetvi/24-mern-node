@@ -20,6 +20,11 @@ const bookingSchema = new Schema({
     status:{
         type:String,
         default:"Pending"
+    },
+    address: {
+        type: Schema.Types.ObjectId,
+        ref: 'Address',
+        default: null
     }
 })
 

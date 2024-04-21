@@ -28,6 +28,7 @@ const subCategoryRoute = require("./Routes/SubCategoryRoute.js")
 const typeRoute = require("./Routes/TypeRoute.js")
 const userRoute = require("./Routes/UserRoute.js")
 const bookingRoute = require("./Routes/BookingRoutes.js")
+const addressRoutes = require("./Routes/AddressRoutes.js")
 
 
 //provinding to server all routes...
@@ -40,6 +41,7 @@ app.use("/subCategories",subCategoryRoute)
 app.use("/types",typeRoute)
 app.use("/users",userRoute)
 app.use("/bookings",bookingRoute)
+app.use("/addresses",addressRoutes)
 
 
 app.listen(PORT,()=>{

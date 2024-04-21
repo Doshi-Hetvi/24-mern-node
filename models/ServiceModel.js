@@ -1,47 +1,46 @@
 const mongoose = require('mongoose')
 const Schema = mongoose.Schema;
 
-const serviceSchema = new Schema ({
-    servicename:{
-        type:String,
-        required: true
+const serviceSchema = new Schema({
+    servicename: {
+        type: String,
     },
-    category:{
+    category: {
         type: Schema.Types.ObjectId,
         ref: 'Category'
     },
-    type:{
+    type: {
         type: Schema.Types.ObjectId,
         ref: 'Type'
     },
-    serviceprovider:{
+    serviceprovider: {
         type: Schema.Types.ObjectId,
         ref: 'Serviceprovider'
     },
-    subCategory:{
+    subCategory: {
         type: Schema.Types.ObjectId,
         ref: 'SubCategory'
     },
-    amount:{
-        type:Number
+    servicedescription: {
+        type: String,
     },
-    area:{
-        type:String,
-        required: true
+    amount: {
+        type: Number
     },
-    city:{
-        type:String,
-        required: true
+    area: {
+        type: String,
     },
-    state:{
-        type:String,
-        required:true
+    city: {
+        type: String,
+    },
+    state: {
+        type: String,
     }
-,imageUrl:{
-    type: String,
-    required:true
-}
+    , 
+    imageUrl: {
+        type: String,
+    }
 
 })
 
-module.exports=mongoose.model('Service',serviceSchema)
+module.exports = mongoose.model('Service', serviceSchema)

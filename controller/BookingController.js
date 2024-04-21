@@ -138,7 +138,7 @@ const updateStatusById = async (req, res) => {
       const id = req.params.id;
       console.log(id)
       const updateStatus = await bookingSchema.findByIdAndUpdate(id,{
-        status: "done",
+        status: "Done",
       });
       console.log(updateStatus);
       res.status(200).json({
@@ -187,7 +187,7 @@ const pendingStatusById = async(req,res) =>{
     const userId = req.params.id
     try {
       const doneStatus = await bookingSchema.find({
-        status: "done",user:userId})
+        status: "Done",user:userId})
         .populate("service").populate({
           path:'service',
           populate: {
@@ -313,6 +313,9 @@ const pendingStatusById = async(req,res) =>{
       });
     }
   };
+
+
+  
 
 
 module.exports = {
